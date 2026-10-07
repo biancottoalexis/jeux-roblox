@@ -1,22 +1,40 @@
-# ⚔️ Jeu de combat anime (Roblox)
+# 📖 Jeu de magie et de grimoires (Roblox)
 
-Un jeu de combat inspiré des animés japonais. Les joueurs tirent un **style de
-combat** (Flamme, Foudre, Ombre, Soleil…), se battent avec des combos et des
-compétences, gagnent des Yens et de l'XP, et peuvent acheter des avantages en
-Robux.
+Un jeu de combat magique inspiré de **Black Clover**. Chaque joueur reçoit un
+**grimoire** qui lui donne un attribut magique (Feu, Vent, Eau, Foudre, Glace,
+Lumière, Ombre… ou le très rare Grimoire du Néant). Les joueurs se battent avec
+des combos et des sorts qui consomment du mana, gagnent de l'or et de l'XP, et
+peuvent acheter des avantages en Robux.
+
+## ⚠️ Droits d'auteur : à lire
+
+Black Clover appartient à son auteur et à ses éditeurs (Shueisha). Un jeu
+**monétisé** qui utilise le nom « Black Clover », les noms des personnages
+(Asta, Yuno…), des ordres de chevaliers ou des images de l'anime peut être
+**supprimé par Roblox** après une plainte DMCA. Tu perdrais alors le jeu et tes
+revenus.
+
+La règle suivie ici est celle des grands jeux Roblox du même genre : on garde
+l'**ambiance et les mécaniques** (grimoires, attributs magiques, mana, magie qui
+annule les autres, ordres de chevaliers), mais avec **nos propres noms**.
+
+- ✅ « Magie de Feu », « Grimoire du Néant », « Ordre du Loup Écarlate »… des noms à toi
+- ✅ Dans la description du jeu : « inspiré des animés de magie »
+- ❌ « Black Clover » dans le titre, les noms et les images des personnages, le logo
 
 ## Ce qui est déjà fait
 
 | Système | Détails |
 |---|---|
 | **Combat** | Combo de 4 coups (clic gauche), garde (F), esquive (Q), étourdissement, recul, chiffres de dégâts |
-| **Styles** | 6 styles de 4 raretés, avec 4 compétences chacun (Z, X, C, V) |
-| **Progression** | Niveaux, XP, Yens. Les compétences se débloquent aux niveaux 1, 5, 15 et 30 |
-| **Spins** | Tirage aléatoire d'un style, avec des chances qui dépendent de la rareté |
+| **Grimoires** | 8 attributs magiques de 4 raretés, avec 4 sorts chacun (Z, X, C, V) |
+| **Mana** | Chaque sort coûte du mana. Il se recharge seul et en frappant, et augmente avec le niveau |
+| **Progression** | Niveaux, XP et or. Les sorts se débloquent aux niveaux 1, 5, 15 et 30 |
+| **Tirages** | Bouton « 📖 Grimoire » : tire un grimoire au hasard. Le Néant n'a que 1 % de chance |
 | **Sauvegarde** | Données sauvegardées automatiquement (DataStore) |
-| **Monétisation** | Game Passes (VIP x2 Yens, XP x2) et Developer Products (Spins, Yens) |
+| **Monétisation** | Game Passes (VIP x2 or, XP x2) et Developer Products (tirages, or) |
 | **Mannequins** | 3 mannequins pour s'entraîner seul |
-| **Interface** | Infos joueur, barre de vie, compétences avec temps de recharge, boutique |
+| **Interface** | Infos joueur, barres de vie et de mana, sorts avec temps de recharge, boutique |
 | **Contrôles** | PC, manette et mobile (boutons tactiles automatiques) |
 
 ## Structure du projet
@@ -26,14 +44,14 @@ default.project.json       ← configuration Rojo (relie le code à Studio)
 src/
   shared/                  → ReplicatedStorage.Shared (lu par serveur ET client)
     Config.luau            ← ⚙️ équilibrage : dégâts, vitesses, récompenses
-    Styles.luau            ← 🔥 les styles et leurs compétences
+    Grimoires.luau         ← 📖 les grimoires et leurs sorts
     Monetization.luau      ← 💰 IDs des Game Passes / Products
     Remotes.luau, Movement.luau
   server/                  → ServerScriptService (code secret, anti-triche)
     Services/
       CombatService        ← tout le combat
       DataService          ← sauvegarde
-      ProgressionService   ← niveaux, récompenses, spins
+      ProgressionService   ← niveaux, récompenses, tirages
       MonetizationService  ← achats Robux
       DummyService         ← mannequins
       Effects              ← effets visuels
@@ -41,7 +59,7 @@ src/
     HUD, Input, Animations, State
 ```
 
-Les fichiers que tu modifieras le plus souvent sont **Config**, **Styles** et
+Les fichiers que tu modifieras le plus souvent sont **Config**, **Grimoires** et
 **Monetization**. Ce sont surtout des chiffres et des noms, sans logique compliquée.
 
 ---
@@ -86,7 +104,7 @@ Clique sur **▶ Play** dans Studio. Tu dois voir l'interface et 3 mannequins.
 | Clic gauche | Attaque (combo de 4) |
 | F (maintenir) | Garde |
 | Q | Esquive |
-| Z / X / C / V | Compétences |
+| Z / X / C / V | Sorts (coûtent du mana) |
 
 Pour tester à plusieurs : onglet **Test** → **Clients and Servers** → 2 joueurs → **Start**.
 
@@ -108,7 +126,7 @@ sauvegarde rien.
 2. **Monetization → Passes** → **Create a Pass** : crée « VIP » et « XP x2 ».
    Mets-les en vente (Sale → prix en Robux).
 3. **Monetization → Developer Products** → crée « 5 Spins », « 25 Spins » et
-   « 5 000 Yens ».
+   « 5 000 pièces d'or ».
 4. Copie l'**ID** de chaque objet, c'est le grand nombre affiché.
 5. Colle chaque ID dans `src/shared/Monetization.luau` à la place du `0`.
 
@@ -128,24 +146,24 @@ configuré.
 1. **La rétention avant tout.** Un jeu qui garde les joueurs longtemps est mis
    en avant par l'algorithme. Récompenses quotidiennes, quêtes et classements
    aident beaucoup (voir la feuille de route).
-2. **Les spins font vendre.** Dans les jeux anime, les tirages de styles rares
-   sont la source principale de revenus. Garde les styles légendaires vraiment
-   rares (actuellement 2 %).
+2. **Les tirages font vendre.** Dans les jeux anime, les tirages de grimoires
+   rares sont la source principale de revenus. Garde le Grimoire du Néant
+   vraiment rare (actuellement 1 %).
 3. **Ne vends pas la victoire.** Les joueurs détestent les jeux « pay-to-win ».
-   Vends du confort (x2, plus de spins), pas des dégâts énormes.
-4. **Mises à jour régulières.** Un nouveau style toutes les 1 à 2 semaines fait
-   revenir les joueurs.
+   Vends du confort (x2, plus de tirages), pas des dégâts énormes.
+4. **Mises à jour régulières.** Un nouvel attribut magique toutes les 1 à 2
+   semaines fait revenir les joueurs.
 5. **Pub.** Fais des vidéos TikTok ou YouTube Shorts des compétences les plus
    impressionnantes. Fais aussi de la pub dans Roblox (Ads Manager).
 
 ---
 
-## ➕ Ajouter un nouveau style
+## ➕ Ajouter un nouveau grimoire
 
-Ouvre `src/shared/Styles.luau`, copie un style existant, change son nom, sa
-couleur, sa rareté et ses compétences, puis ajoute son identifiant dans
-`Styles.Order`. C'est tout. Les types de compétences disponibles sont décrits en
-haut du fichier.
+Ouvre `src/shared/Grimoires.luau`, copie un grimoire existant, puis change son
+nom, sa couleur, sa rareté, ses sorts et leur coût en mana. Ajoute ensuite son
+identifiant dans `Grimoires.Order`. C'est tout. Les types de sorts disponibles
+sont décrits en haut du fichier.
 
 ## 🎬 Ajouter des animations
 

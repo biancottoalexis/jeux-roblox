@@ -11,7 +11,7 @@ Monetization.GamePasses = {
 	VIP = {
 		Id = 0,
 		Name = "VIP",
-		Description = "x2 Yens sur chaque combat",
+		Description = "x2 pièces d'or sur chaque combat",
 		Price = 199,
 	},
 	DoubleXP = {
@@ -28,26 +28,26 @@ Monetization.Products = {
 	Spins5 = {
 		Id = 0,
 		Name = "5 Spins",
-		Description = "5 tirages de style",
+		Description = "5 tirages de grimoire",
 		Price = 49,
 		Spins = 5,
 	},
 	Spins25 = {
 		Id = 0,
 		Name = "25 Spins",
-		Description = "25 tirages (meilleure offre !)",
+		Description = "25 tirages de grimoire (meilleure offre !)",
 		Price = 199,
 		Spins = 25,
 	},
-	Yen5000 = {
+	Gold5000 = {
 		Id = 0,
-		Name = "5 000 Yens",
-		Description = "Un paquet de Yens",
+		Name = "5 000 pièces d'or",
+		Description = "Un coffre rempli d'or",
 		Price = 99,
-		Yen = 5000,
+		Gold = 5000,
 	},
 }
-Monetization.ProductOrder = { "Spins5", "Spins25", "Yen5000" }
+Monetization.ProductOrder = { "Spins5", "Spins25", "Gold5000" }
 
 function Monetization.FindProductById(id: number)
 	for key, product in Monetization.Products do

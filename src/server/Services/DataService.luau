@@ -25,10 +25,10 @@ DataService.PlayerLoaded = loadedEvent.Event
 
 local function defaultData()
 	return {
-		Yen = 0,
+		Gold = 0,
 		Level = 1,
 		XP = 0,
-		Style = nil,
+		Grimoire = nil,
 		Spins = Config.Progression.StartingSpins,
 		Kills = 0,
 		Deaths = 0,
@@ -65,11 +65,11 @@ end
 -- Ce que le client a le droit de voir
 local function snapshot(data)
 	return {
-		Yen = data.Yen,
+		Gold = data.Gold,
 		Level = data.Level,
 		XP = data.XP,
 		XPNeeded = Config.XPForLevel(data.Level),
-		Style = data.Style,
+		Grimoire = data.Grimoire,
 		Spins = data.Spins,
 		Kills = data.Kills,
 	}
@@ -83,7 +83,7 @@ local function refresh(player: Player)
 	local leaderstats = player:FindFirstChild("leaderstats")
 	if leaderstats then
 		leaderstats.Niveau.Value = data.Level
-		leaderstats.Yens.Value = data.Yen
+		leaderstats.Or.Value = data.Gold
 	end
 	Remotes.Data:FireClient(player, snapshot(data))
 end
@@ -96,9 +96,9 @@ local function createLeaderstats(player: Player)
 	level.Name = "Niveau"
 	level.Parent = leaderstats
 
-	local yen = Instance.new("IntValue")
-	yen.Name = "Yens"
-	yen.Parent = leaderstats
+	local gold = Instance.new("IntValue")
+	gold.Name = "Or"
+	gold.Parent = leaderstats
 
 	leaderstats.Parent = player
 end
@@ -136,7 +136,7 @@ function DataService.Get(player: Player)
 end
 
 -- Modifie les données puis met à jour l'affichage du joueur.
--- Exemple : DataService.Update(player, function(data) data.Yen += 10 end)
+-- Exemple : DataService.Update(player, function(data) data.Gold += 10 end)
 function DataService.Update(player: Player, fn: (any) -> ())
 	local data = profiles[player]
 	if not data then

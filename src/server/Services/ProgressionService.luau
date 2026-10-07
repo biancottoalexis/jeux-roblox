@@ -1,10 +1,10 @@
--- Récompenses (Yens, XP), montée de niveau et tirage des styles.
+-- Récompenses (or, XP), montée de niveau et tirage des grimoires.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
-local Styles = require(Shared.Styles)
+local Grimoires = require(Shared.Grimoires)
 local Remotes = require(Shared.Remotes)
 
 local DataService = require(script.Parent.DataService)
@@ -16,9 +16,9 @@ local SPIN_COOLDOWN = 0.5
 local lastSpin: { [Player]: number } = {}
 local rng = Random.new()
 
-function ProgressionService.AddRewards(player: Player, yen: number, xp: number)
+function ProgressionService.AddRewards(player: Player, gold: number, xp: number)
 	if MonetizationService.HasPass(player, "VIP") then
-		yen *= 2
+		gold *= 2
 	end
 	if MonetizationService.HasPass(player, "DoubleXP") then
 		xp *= 2
@@ -26,7 +26,7 @@ function ProgressionService.AddRewards(player: Player, yen: number, xp: number)
 
 	local levelsGained = 0
 	DataService.Update(player, function(data)
-		data.Yen += yen
+		data.Gold += gold
 		data.XP += xp
 		while data.Level < Config.Progression.MaxLevel and data.XP >= Config.XPForLevel(data.Level) do
 			data.XP -= Config.XPForLevel(data.Level)
@@ -63,18 +63,18 @@ local function spin(player: Player)
 		return
 	end
 	if data.Spins <= 0 then
-		Remotes.Notify:FireClient(player, "Plus de spins ! Achète-en dans la boutique.")
+		Remotes.Notify:FireClient(player, "Plus de tirages ! Achètes-en dans la boutique.")
 		return
 	end
 
-	local styleId = Styles.Roll(rng)
+	local grimoireId = Grimoires.Roll(rng)
 	DataService.Update(player, function(d)
 		d.Spins -= 1
-		d.Style = styleId
+		d.Grimoire = grimoireId
 	end)
 
-	local style = Styles.List[styleId]
-	Remotes.Notify:FireClient(player, `Tu as obtenu : {style.DisplayName} ({style.Rarity}) !`)
+	local grimoire = Grimoires.List[grimoireId]
+	Remotes.Notify:FireClient(player, `Ton grimoire s'ouvre : {grimoire.DisplayName} ({grimoire.Rarity}) !`)
 end
 
 function ProgressionService.Init() end
@@ -82,11 +82,11 @@ function ProgressionService.Init() end
 function ProgressionService.Start()
 	Remotes.Spin.OnServerEvent:Connect(spin)
 
-	-- Un style gratuit pour les nouveaux joueurs
+	-- Un grimoire gratuit pour les nouveaux joueurs
 	DataService.PlayerLoaded:Connect(function(player, data)
-		if data.Style == nil then
+		if data.Grimoire == nil then
 			DataService.Update(player, function(d)
-				d.Style = Styles.Roll(rng)
+				d.Grimoire = Grimoires.Roll(rng)
 			end)
 		end
 	end)

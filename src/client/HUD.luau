@@ -1,5 +1,5 @@
 -- Interface du joueur, entièrement créée en code :
--- infos (style, niveau, yens), barre de vie, compétences, spin et boutique.
+-- infos (grimoire, niveau, or), vie, mana, sorts, tirage de grimoire et boutique.
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
-local Styles = require(Shared.Styles)
+local Grimoires = require(Shared.Grimoires)
 local Monetization = require(Shared.Monetization)
 local Remotes = require(Shared.Remotes)
 
@@ -26,6 +26,7 @@ local COLORS = {
 	Text = Color3.fromRGB(240, 240, 245),
 	Muted = Color3.fromRGB(160, 160, 175),
 	Health = Color3.fromRGB(230, 60, 70),
+	Mana = Color3.fromRGB(70, 120, 255),
 	XP = Color3.fromRGB(90, 170, 255),
 	Gold = Color3.fromRGB(255, 205, 60),
 	Accent = Color3.fromRGB(255, 90, 120),
@@ -119,9 +120,10 @@ end
 ---------------------------------------------------------------------------
 
 local gui: ScreenGui
-local infoStyle, infoLevel, infoYen, infoSpins
+local infoGrimoire, infoLevel, infoGold, infoSpins
 local xpFill, xpText
 local healthFill, healthText
+local manaFill, manaText
 local skillSlots = {}
 local notifyLabel
 local shopFrame
@@ -139,13 +141,13 @@ local function buildInfoPanel()
 		PaddingRight = UDim.new(0, 10),
 	}) })
 
-	infoStyle = label({ Size = UDim2.new(1, 0, 0, 26), Text = "Style : ...", Parent = panel })
+	infoGrimoire = label({ Size = UDim2.new(1, 0, 0, 26), Text = "Grimoire : ...", Parent = panel })
 	infoLevel = label({ Position = UDim2.fromOffset(0, 30), Size = UDim2.new(1, 0, 0, 20), Text = "Niveau 1", Parent = panel })
 	xpFill, xpText = bar(panel, UDim2.fromOffset(0, 54), UDim2.new(1, 0, 0, 14), COLORS.XP)
-	infoYen = label({
+	infoGold = label({
 		Position = UDim2.fromOffset(0, 74),
 		Size = UDim2.new(0.6, 0, 0, 20),
-		Text = "0 ¥",
+		Text = "0 🪙",
 		TextColor3 = COLORS.Gold,
 		Parent = panel,
 	})
@@ -162,15 +164,16 @@ local function buildHealthAndSkills()
 	local holder = make("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -12),
-		Size = UDim2.fromOffset(330, 110),
+		Size = UDim2.fromOffset(330, 132),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	})
 
 	healthFill, healthText = bar(holder, UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, 18), COLORS.Health)
+	manaFill, manaText = bar(holder, UDim2.fromOffset(0, 22), UDim2.new(1, 0, 0, 14), COLORS.Mana)
 
 	local row = make("Frame", {
-		Position = UDim2.fromOffset(0, 28),
+		Position = UDim2.fromOffset(0, 46),
 		Size = UDim2.new(1, 0, 0, 78),
 		BackgroundTransparency = 1,
 		Parent = holder,
@@ -351,7 +354,7 @@ local function buildSideButtons()
 		Parent = gui,
 	}, { make("UIListLayout", { Padding = UDim.new(0, 10) }) })
 
-	local spin = button({ Size = UDim2.fromOffset(150, 48), Text = "🎲 Spin", Parent = holder }, Color3.fromRGB(120, 70, 220))
+	local spin = button({ Size = UDim2.fromOffset(150, 48), Text = "📖 Grimoire", Parent = holder }, Color3.fromRGB(120, 70, 220))
 	spin.Activated:Connect(function()
 		Remotes.Spin:FireServer()
 	end)
@@ -367,28 +370,28 @@ local function refreshData()
 	if not data then
 		return
 	end
-	local style = data.Style and Styles.List[data.Style]
-	if style then
-		infoStyle.Text = `{style.DisplayName} • {style.Rarity}`
-		infoStyle.TextColor3 = style.Color
+	local grimoire = data.Grimoire and Grimoires.List[data.Grimoire]
+	if grimoire then
+		infoGrimoire.Text = `{grimoire.DisplayName} • {grimoire.Rarity}`
+		infoGrimoire.TextColor3 = Grimoires.Rarities[grimoire.Rarity]
 	end
 	infoLevel.Text = `Niveau {data.Level}`
 	xpFill.Size = UDim2.fromScale(math.clamp(data.XP / data.XPNeeded, 0, 1), 1)
 	xpText.Text = `{formatNumber(data.XP)} / {formatNumber(data.XPNeeded)} XP`
-	infoYen.Text = `{formatNumber(data.Yen)} ¥`
+	infoGold.Text = `{formatNumber(data.Gold)} 🪙`
 	infoSpins.Text = `🎲 {data.Spins}`
 
 	for slot, ui in skillSlots do
-		local skill = style and style.Skills[slot]
+		local skill = grimoire and grimoire.Skills[slot]
 		local required = Config.Progression.SkillUnlockLevels[slot]
 		if data.Level < required then
 			ui.Name.Text = `🔒 Niv {required}`
 			ui.Name.TextColor3 = COLORS.Muted
 		else
-			ui.Name.Text = skill and skill.Name or "-"
+			ui.Name.Text = if skill then `{skill.Name}\n{skill.ManaCost} mana` else "-"
 			ui.Name.TextColor3 = COLORS.Text
 		end
-		ui.Stroke.Color = style and style.Color or COLORS.PanelLight
+		ui.Stroke.Color = grimoire and grimoire.Color or COLORS.PanelLight
 	end
 end
 
@@ -401,6 +404,16 @@ local function trackHealth(character: Model)
 	humanoid.HealthChanged:Connect(update)
 	humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(update)
 	update()
+
+	local function updateMana()
+		local mana = character:GetAttribute("Mana") or 0
+		local maxMana = character:GetAttribute("MaxMana") or 100
+		manaFill.Size = UDim2.fromScale(math.clamp(mana / maxMana, 0, 1), 1)
+		manaText.Text = `{math.floor(mana)} / {maxMana} mana`
+	end
+	character:GetAttributeChangedSignal("Mana"):Connect(updateMana)
+	character:GetAttributeChangedSignal("MaxMana"):Connect(updateMana)
+	updateMana()
 end
 
 local function updateCooldowns()

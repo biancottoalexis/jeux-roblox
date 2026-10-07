@@ -31,14 +31,22 @@ Config.Combat = {
 	LastAttackerWindow = 15, -- secondes pendant lesquelles un kill est attribué
 }
 
+-- Mana : chaque sort en consomme, il se recharge avec le temps
+Config.Mana = {
+	Base = 100, -- mana max au niveau 1
+	PerLevel = 3, -- mana max gagné par niveau
+	RegenPerSecond = 6,
+	PerM1Hit = 3, -- mana récupéré à chaque coup de poing qui touche
+}
+
 Config.Progression = {
-	KillYen = 50,
+	KillGold = 50,
 	KillXP = 40,
-	DummyYen = 5,
+	DummyGold = 5,
 	DummyXP = 10,
 	StartingSpins = 3,
 	MaxLevel = 200,
-	-- Niveau requis pour débloquer chaque compétence (Z, X, C, V)
+	-- Niveau requis pour débloquer chaque sort (Z, X, C, V)
 	SkillUnlockLevels = { 1, 5, 15, 30 },
 }
 

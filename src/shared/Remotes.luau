@@ -6,7 +6,7 @@ local RunService = game:GetService("RunService")
 
 local NAMES = {
 	"Combat", -- client -> serveur : "M1", "Block", "Skill"
-	"Spin", -- client -> serveur : demande de tirage de style
+	"Spin", -- client -> serveur : demande de tirage de grimoire
 	"Data", -- serveur -> client : données du joueur (le client peut les redemander)
 	"Cooldown", -- serveur -> client : une action vient d'être utilisée
 	"Knockback", -- serveur -> client : pousse le personnage du joueur

@@ -1,6 +1,6 @@
 -- Contrôles du joueur (PC, manette et mobile).
 --   Clic gauche : attaque     F : garde     Q : esquive
---   Z / X / C / V : compétences 1 à 4
+--   Z / X / C / V : sorts 1 à 4
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")

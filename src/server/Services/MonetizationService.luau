@@ -80,8 +80,8 @@ local function processReceipt(receipt)
 		if product.Spins then
 			d.Spins += product.Spins
 		end
-		if product.Yen then
-			d.Yen += product.Yen
+		if product.Gold then
+			d.Gold += product.Gold
 		end
 		d.Receipts[receipt.PurchaseId] = os.time()
 		pruneReceipts(d.Receipts)

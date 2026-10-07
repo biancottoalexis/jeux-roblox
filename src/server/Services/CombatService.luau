@@ -7,7 +7,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
-local Styles = require(Shared.Styles)
+local Grimoires = require(Shared.Grimoires)
 local Remotes = require(Shared.Remotes)
 local Movement = require(Shared.Movement)
 
@@ -56,6 +56,21 @@ end
 
 local function isStunned(character: Model): boolean
 	return (character:GetAttribute("StunnedUntil") or 0) > now()
+end
+
+local function maxManaFor(level: number): number
+	return Config.Mana.Base + Config.Mana.PerLevel * (level - 1)
+end
+
+local function addMana(character: Model, amount: number)
+	local mana = character:GetAttribute("Mana")
+	local maxMana = character:GetAttribute("MaxMana")
+	if mana and maxMana then
+		local newMana = math.clamp(mana + amount, 0, maxMana)
+		if newMana ~= mana then
+			character:SetAttribute("Mana", newMana)
+		end
+	end
 end
 
 local function updateSpeed(character: Model)
@@ -191,12 +206,12 @@ local function onDied(humanoid: Humanoid, isDummy: boolean)
 
 	local P = Config.Progression
 	if isDummy then
-		ProgressionService.AddRewards(killer, P.DummyYen, P.DummyXP)
+		ProgressionService.AddRewards(killer, P.DummyGold, P.DummyXP)
 	else
 		DataService.Update(killer, function(data)
 			data.Kills += 1
 		end)
-		ProgressionService.AddRewards(killer, P.KillYen, P.KillXP)
+		ProgressionService.AddRewards(killer, P.KillGold, P.KillXP)
 		Remotes.Notify:FireClient(killer, `Tu as vaincu {victim and victim.DisplayName or "un ennemi"} !`)
 	end
 end
@@ -340,11 +355,12 @@ local function onM1(player: Player, character: Model, root: BasePart)
 	Remotes.Cooldown:FireClient(player, "M1", state.nextM1 - t, state.combo)
 
 	local data = DataService.Get(player)
-	local style = data and data.Style and Styles.List[data.Style]
-	Effects.Slash(root.CFrame, style and style.Color or Color3.new(1, 1, 1))
+	local grimoire = data and data.Grimoire and Grimoires.List[data.Grimoire]
+	Effects.Slash(root.CFrame, grimoire and grimoire.Color or Color3.new(1, 1, 1))
 
 	local center = root.CFrame * CFrame.new(0, 0, -C.M1HitboxSize.Z / 2)
 	for _, humanoid in hitBox(center, C.M1HitboxSize, character) do
+		addMana(character, Config.Mana.PerM1Hit)
 		CombatService.DealDamage(player, character, humanoid, if isFinal then C.M1FinalDamage else C.M1Damage, {
 			Stun = C.M1Stun,
 			Knockback = if isFinal then root.CFrame.LookVector * C.FinalKnockback + Vector3.new(0, 20, 0) else nil,
@@ -369,16 +385,16 @@ local function onSkill(player: Player, character: Model, root: BasePart, slot: n
 		return
 	end
 	local data = DataService.Get(player)
-	if not data or not data.Style then
+	if not data or not data.Grimoire then
 		return
 	end
-	local style = Styles.List[data.Style]
-	local skill = style and style.Skills[slot]
+	local grimoire = Grimoires.List[data.Grimoire]
+	local skill = grimoire and grimoire.Skills[slot]
 	if not skill then
 		return
 	end
 	if slot > ProgressionService.UnlockedSkillCount(data.Level) then
-		Remotes.Notify:FireClient(player, `Compétence débloquée au niveau {Config.Progression.SkillUnlockLevels[slot]}`)
+		Remotes.Notify:FireClient(player, `Sort débloqué au niveau {Config.Progression.SkillUnlockLevels[slot]}`)
 		return
 	end
 
@@ -388,10 +404,15 @@ local function onSkill(player: Player, character: Model, root: BasePart, slot: n
 	if (state.cooldowns[key] or 0) > t then
 		return
 	end
+	if (character:GetAttribute("Mana") or 0) < skill.ManaCost then
+		Remotes.Notify:FireClient(player, "Pas assez de mana !")
+		return
+	end
+	addMana(character, -skill.ManaCost)
 	state.cooldowns[key] = t + skill.Cooldown
 	Remotes.Cooldown:FireClient(player, key, skill.Cooldown)
 
-	SkillKinds[skill.Kind](player, character, root, skill, style.Color)
+	SkillKinds[skill.Kind](player, character, root, skill, grimoire.Color)
 end
 
 local function onCombat(player: Player, action: unknown, arg: unknown)
@@ -424,6 +445,12 @@ function CombatService.Start()
 	local function onCharacter(character: Model)
 		local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 		CombatService.TrackHumanoid(humanoid, false)
+
+		local player = Players:GetPlayerFromCharacter(character)
+		local data = player and DataService.Get(player)
+		local maxMana = maxManaFor(data and data.Level or 1)
+		character:SetAttribute("MaxMana", maxMana)
+		character:SetAttribute("Mana", maxMana)
 	end
 
 	local function onPlayer(player: Player)
@@ -437,6 +464,25 @@ function CombatService.Start()
 	for _, player in Players:GetPlayers() do
 		onPlayer(player)
 	end
+
+	-- Recharge du mana (et mise à jour du mana max après un niveau gagné)
+	local TICK = 0.2
+	task.spawn(function()
+		while true do
+			task.wait(TICK)
+			for _, player in Players:GetPlayers() do
+				local character = player.Character
+				local data = DataService.Get(player)
+				if character and data and getAlive(character) then
+					local maxMana = maxManaFor(data.Level)
+					if character:GetAttribute("MaxMana") ~= maxMana then
+						character:SetAttribute("MaxMana", maxMana)
+					end
+					addMana(character, Config.Mana.RegenPerSecond * TICK)
+				end
+			end
+		end
+	end)
 end
 
 return CombatService
