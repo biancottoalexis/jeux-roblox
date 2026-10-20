@@ -69,6 +69,22 @@ function Effects.Slash(origin: CFrame, color: Color3)
 	Debris:AddItem(part, 0.2)
 end
 
+-- Cercle au sol qui annonce une grosse attaque (le boss)
+function Effects.Warning(position: Vector3, radius: number, duration: number)
+	local part = basePart(Color3.fromRGB(255, 30, 30))
+	part.Shape = Enum.PartType.Cylinder
+	part.Size = Vector3.new(0.3, 2, 2)
+	part.CFrame = CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90))
+	part.Transparency = 0.6
+	part.Parent = folder
+
+	TweenService:Create(part, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+		Size = Vector3.new(0.3, radius * 2, radius * 2),
+		Transparency = 0.3,
+	}):Play()
+	Debris:AddItem(part, duration)
+end
+
 -- Projectile visible (déplacé par le CombatService)
 function Effects.Orb(position: Vector3, radius: number, color: Color3): Part
 	local part = basePart(color)

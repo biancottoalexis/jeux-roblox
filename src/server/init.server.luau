@@ -6,6 +6,10 @@ local order = {
 	"MonetizationService",
 	"ProgressionService",
 	"CombatService",
+	"OrderService",
+	"QuestService",
+	"LeaderboardService",
+	"BossService",
 	"DummyService",
 	-- Le DataService démarre en dernier pour que les autres services soient
 	-- déjà prêts quand les données du premier joueur arrivent.

@@ -68,6 +68,65 @@ Config.Dummies = {
 	},
 }
 
+-- Le boss : un démon qui apparaît régulièrement. Tous les joueurs peuvent
+-- l'attaquer ensemble. Plus il y a de joueurs, plus il a de vie.
+Config.Boss = {
+	DisplayName = "Démon des Abysses",
+	FirstSpawnDelay = 180, -- secondes avant le premier boss après l'ouverture du serveur
+	Interval = 1800, -- 30 minutes entre deux boss
+	Lifetime = 600, -- s'il n'est pas vaincu en 10 minutes, il s'enfuit
+	SpawnPosition = Vector3.new(-70, 8, 0),
+	Scale = 3, -- taille (3 = trois fois plus grand qu'un joueur)
+	BaseHealth = 2500,
+	HealthPerPlayer = 1500,
+	WalkSpeed = 14,
+	AggroRange = 150, -- distance à laquelle il repère les joueurs
+	LeashRange = 120, -- il ne s'éloigne pas plus loin de son point d'apparition
+
+	-- Coup de griffe quand un joueur est tout près
+	SlashDamage = 14,
+	SlashRange = 12,
+	SlashCooldown = 1.6,
+
+	-- Onde démoniaque : grosse explosion annoncée par un cercle rouge
+	WaveDamage = 28,
+	WaveRadius = 28,
+	WaveCooldown = 9,
+	WaveWarning = 1.2, -- temps pour s'enfuir après l'apparition du cercle
+
+	-- Sous 50 % de vie, il devient enragé : plus rapide et attaque plus souvent
+	EnrageAt = 0.5,
+	EnrageSpeedMultiplier = 1.4,
+	EnrageCooldownMultiplier = 0.6,
+
+	-- Récompense de chaque participant (il faut avoir infligé au moins MinDamageShare des dégâts)
+	RewardGold = 500,
+	RewardXP = 600,
+	MinDamageShare = 0.01,
+	TopDamageSpins = 1, -- bonus pour le joueur qui a fait le plus de dégâts
+}
+
+-- Ordres de chevaliers-mages (voir Orders.luau pour les ordres eux-mêmes)
+Config.Orders = {
+	ChangeCost = 2000, -- or à payer pour changer d'ordre (le premier choix est gratuit)
+	MinLevel = 3, -- niveau requis pour rejoindre un ordre
+	-- Points de mérite rapportés à l'ordre
+	MeritPerKill = 3,
+	MeritPerQuest = 2,
+	MeritPerBoss = 10,
+	MeritPerDaily = 1,
+	FlushInterval = 60, -- envoi des points au classement mondial (secondes)
+}
+
+-- Classement mondial
+Config.Leaderboard = {
+	Size = 10, -- nombre de joueurs affichés
+	RefreshInterval = 120, -- mise à jour du classement (secondes)
+	LevelStore = "Leaderboard_Level_v1",
+	KillsStore = "Leaderboard_Kills_v1",
+	OrderStore = "Leaderboard_Orders_v1",
+}
+
 -- IDs d'animations (ex : "rbxassetid://123456"). Laisse vide tant que tu
 -- n'as pas créé tes animations : le jeu fonctionne sans.
 Config.Animations = {

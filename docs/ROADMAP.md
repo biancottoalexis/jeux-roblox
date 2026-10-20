@@ -19,14 +19,15 @@
 - [ ] Créer une icône et des miniatures attirantes pour la page du jeu
 
 ## Phase 3 : Garder les joueurs (rétention)
-- [ ] **Ordres de chevaliers-mages** : 5 à 8 ordres à rejoindre, avec leurs couleurs, un classement entre ordres et des bonus
+- [x] **Ordres de chevaliers-mages** : 6 ordres à rejoindre, avec leurs couleurs, un classement entre ordres et des bonus
 - [ ] Rang de chevalier-mage (5e classe → Chevalier Suprême) gagné par les missions
 - [ ] **Missions** depuis un tableau dans la ville (PNJ à vaincre, donjons)
 - [ ] Éveil du grimoire : au niveau 50, les sorts deviennent plus puissants
-- [ ] Récompense de connexion quotidienne
-- [ ] Quêtes (« Bats 10 mannequins », « Gagne 3 combats »)
-- [ ] Classement mondial (OrderedDataStore) par kills et par niveau
-- [ ] Boss PNJ qui apparaît toutes les 30 minutes (ex. un démon)
+- [x] Récompense de connexion quotidienne (série de 7 jours)
+- [x] Quêtes du jour (« Bats 10 mannequins », « Gagne 3 combats »)
+- [x] Classement mondial (OrderedDataStore) par kills et par niveau
+- [x] Boss PNJ qui apparaît toutes les 30 minutes (le Démon des Abysses)
+- [ ] Animations et arène dédiée pour le boss (à faire dans Studio)
 - [ ] Mode Ranked 1v1 dans une arène
 
 ## Phase 4 : Plus de monétisation

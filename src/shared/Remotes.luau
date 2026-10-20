@@ -11,6 +11,9 @@ local NAMES = {
 	"Cooldown", -- serveur -> client : une action vient d'être utilisée
 	"Knockback", -- serveur -> client : pousse le personnage du joueur
 	"Notify", -- serveur -> client : message à afficher
+	"Quest", -- client -> serveur : "Daily" (récompense du jour) ou "Claim", index
+	"Order", -- client -> serveur : rejoindre un ordre
+	"Leaderboard", -- client -> serveur : demande le classement ; serveur -> client : le classement
 }
 
 local Remotes = {}

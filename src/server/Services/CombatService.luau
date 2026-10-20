@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Grimoires = require(Shared.Grimoires)
+local Orders = require(Shared.Orders)
 local Remotes = require(Shared.Remotes)
 local Movement = require(Shared.Movement)
 
@@ -18,6 +19,20 @@ local Effects = require(script.Parent.Effects)
 local CombatService = {}
 
 local C = Config.Combat
+
+local damageDealtEvent = Instance.new("BindableEvent")
+local killedEvent = Instance.new("BindableEvent")
+local skillUsedEvent = Instance.new("BindableEvent")
+
+-- (player, targetHumanoid, amount) : un joueur vient d'infliger des dégâts
+CombatService.DamageDealt = damageDealtEvent.Event
+-- (killer, kind, character) : un joueur a vaincu une cible ("Player" ou "Dummy")
+CombatService.Killed = killedEvent.Event
+-- (player, slot) : un joueur a lancé un sort
+CombatService.SkillUsed = skillUsedEvent.Event
+
+-- Ce qu'est un personnage suivi par le combat
+export type TargetKind = "Player" | "Dummy" | "Boss"
 
 type CombatState = {
 	combo: number,
@@ -58,8 +73,15 @@ local function isStunned(character: Model): boolean
 	return (character:GetAttribute("StunnedUntil") or 0) > now()
 end
 
-local function maxManaFor(level: number): number
-	return Config.Mana.Base + Config.Mana.PerLevel * (level - 1)
+local function maxManaFor(level: number, orderId: string?): number
+	local base = Config.Mana.Base + Config.Mana.PerLevel * (level - 1)
+	return math.floor(base * (1 + Orders.BonusFor(orderId, "MaxMana")))
+end
+
+local BASE_MAX_HEALTH = 100
+
+local function maxHealthFor(orderId: string?): number
+	return math.floor(BASE_MAX_HEALTH * (1 + Orders.BonusFor(orderId, "MaxHealth")))
 end
 
 local function addMana(character: Model, amount: number)
@@ -88,6 +110,9 @@ local function updateSpeed(character: Model)
 end
 
 local function applyStun(character: Model, duration: number)
+	if character:GetAttribute("SuperArmor") then
+		return -- le boss ne peut pas être étourdi
+	end
 	local untilTime = math.max(character:GetAttribute("StunnedUntil") or 0, now() + duration)
 	character:SetAttribute("StunnedUntil", untilTime)
 	updateSpeed(character)
@@ -99,6 +124,9 @@ local function applyStun(character: Model, duration: number)
 end
 
 local function applyKnockback(character: Model, velocity: Vector3)
+	if character:GetAttribute("SuperArmor") then
+		return
+	end
 	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not root then
 		return
@@ -166,12 +194,18 @@ function CombatService.DealDamage(attacker: Player?, attackerCharacter: Model, t
 	end
 
 	if attacker then
+		local data = DataService.Get(attacker)
+		amount *= 1 + Orders.BonusFor(data and data.Order, "Damage")
 		targetCharacter:SetAttribute("LastAttackerId", attacker.UserId)
 		targetCharacter:SetAttribute("LastHitAt", now())
 	end
 
+	local dealt = math.min(amount, target.Health)
 	target:TakeDamage(amount)
 	Effects.DamageNumber(targetRoot, amount, blocked)
+	if attacker and dealt > 0 then
+		damageDealtEvent:Fire(attacker, target, dealt)
+	end
 
 	if not blocked then
 		if opts.Stun then
@@ -184,11 +218,15 @@ function CombatService.DealDamage(attacker: Player?, attackerCharacter: Model, t
 end
 
 -- Attribue la récompense au dernier joueur qui a frappé
-local function onDied(humanoid: Humanoid, isDummy: boolean)
+local function onDied(humanoid: Humanoid, kind: TargetKind)
 	local character = humanoid.Parent :: Model
 	local killerId = character:GetAttribute("LastAttackerId")
 	local hitAt = character:GetAttribute("LastHitAt") or 0
 	local victim = Players:GetPlayerFromCharacter(character)
+
+	if kind == "Boss" then
+		return -- le BossService partage lui-même les récompenses
+	end
 
 	if victim then
 		DataService.Update(victim, function(data)
@@ -205,7 +243,7 @@ local function onDied(humanoid: Humanoid, isDummy: boolean)
 	end
 
 	local P = Config.Progression
-	if isDummy then
+	if kind == "Dummy" then
 		ProgressionService.AddRewards(killer, P.DummyGold, P.DummyXP)
 	else
 		DataService.Update(killer, function(data)
@@ -214,15 +252,16 @@ local function onDied(humanoid: Humanoid, isDummy: boolean)
 		ProgressionService.AddRewards(killer, P.KillGold, P.KillXP)
 		Remotes.Notify:FireClient(killer, `Tu as vaincu {victim and victim.DisplayName or "un ennemi"} !`)
 	end
+	killedEvent:Fire(killer, kind, character)
 end
 
-function CombatService.TrackHumanoid(humanoid: Humanoid, isDummy: boolean)
+function CombatService.TrackHumanoid(humanoid: Humanoid, kind: TargetKind)
 	local character = humanoid.Parent :: Model
 	character:SetAttribute("StunnedUntil", 0)
 	character:SetAttribute("Blocking", false)
 	humanoid.WalkSpeed = C.DefaultWalkSpeed
 	humanoid.Died:Once(function()
-		onDied(humanoid, isDummy)
+		onDied(humanoid, kind)
 	end)
 end
 
@@ -411,6 +450,7 @@ local function onSkill(player: Player, character: Model, root: BasePart, slot: n
 	addMana(character, -skill.ManaCost)
 	state.cooldowns[key] = t + skill.Cooldown
 	Remotes.Cooldown:FireClient(player, key, skill.Cooldown)
+	skillUsedEvent:Fire(player, slot)
 
 	SkillKinds[skill.Kind](player, character, root, skill, grimoire.Color)
 end
@@ -444,11 +484,14 @@ function CombatService.Start()
 
 	local function onCharacter(character: Model)
 		local humanoid = character:WaitForChild("Humanoid") :: Humanoid
-		CombatService.TrackHumanoid(humanoid, false)
+		CombatService.TrackHumanoid(humanoid, "Player")
 
 		local player = Players:GetPlayerFromCharacter(character)
 		local data = player and DataService.Get(player)
-		local maxMana = maxManaFor(data and data.Level or 1)
+		local maxHealth = maxHealthFor(data and data.Order)
+		humanoid.MaxHealth = maxHealth
+		humanoid.Health = maxHealth
+		local maxMana = maxManaFor(data and data.Level or 1, data and data.Order)
 		character:SetAttribute("MaxMana", maxMana)
 		character:SetAttribute("Mana", maxMana)
 	end
@@ -465,7 +508,8 @@ function CombatService.Start()
 		onPlayer(player)
 	end
 
-	-- Recharge du mana (et mise à jour du mana max après un niveau gagné)
+	-- Recharge du mana, et mise à jour du mana max et de la vie max
+	-- (après un niveau gagné ou un changement d'ordre)
 	local TICK = 0.2
 	task.spawn(function()
 		while true do
@@ -473,12 +517,20 @@ function CombatService.Start()
 			for _, player in Players:GetPlayers() do
 				local character = player.Character
 				local data = DataService.Get(player)
-				if character and data and getAlive(character) then
-					local maxMana = maxManaFor(data.Level)
+				local humanoid = getAlive(character)
+				if character and humanoid and data then
+					local maxMana = maxManaFor(data.Level, data.Order)
 					if character:GetAttribute("MaxMana") ~= maxMana then
 						character:SetAttribute("MaxMana", maxMana)
 					end
-					addMana(character, Config.Mana.RegenPerSecond * TICK)
+					local maxHealth = maxHealthFor(data.Order)
+					if humanoid.MaxHealth ~= maxHealth then
+						local ratio = humanoid.Health / humanoid.MaxHealth
+						humanoid.MaxHealth = maxHealth
+						humanoid.Health = maxHealth * ratio
+					end
+					local regen = Config.Mana.RegenPerSecond * (1 + Orders.BonusFor(data.Order, "ManaRegen"))
+					addMana(character, regen * TICK)
 				end
 			end
 		end

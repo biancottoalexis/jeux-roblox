@@ -32,7 +32,7 @@ local function spawnDummy(position: Vector3)
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
 	root:SetNetworkOwner(nil) -- le serveur garde le contrôle de sa physique
 
-	CombatService.TrackHumanoid(humanoid, true)
+	CombatService.TrackHumanoid(humanoid, "Dummy")
 
 	humanoid.Died:Once(function()
 		task.wait(Config.Dummies.RespawnTime)

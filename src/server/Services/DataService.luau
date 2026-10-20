@@ -32,6 +32,15 @@ local function defaultData()
 		Spins = Config.Progression.StartingSpins,
 		Kills = 0,
 		Deaths = 0,
+		BossKills = 0,
+		-- Ordre de chevaliers-mages (nil = aucun) et mérite apporté à son ordre
+		Order = nil,
+		Merit = 0,
+		-- Récompense quotidienne : dernier jour réclamé et série de jours d'affilée
+		LastDailyDay = 0,
+		DailyStreak = 0,
+		-- Quêtes du jour : { Day = numéro du jour, List = { { Id, Progress, Claimed } } }
+		Quests = { Day = 0, List = {} },
 		-- Achats déjà crédités, pour ne jamais donner deux fois le même achat
 		Receipts = {},
 	}
@@ -72,6 +81,12 @@ local function snapshot(data)
 		Grimoire = data.Grimoire,
 		Spins = data.Spins,
 		Kills = data.Kills,
+		BossKills = data.BossKills,
+		Order = data.Order,
+		Merit = data.Merit,
+		LastDailyDay = data.LastDailyDay,
+		DailyStreak = data.DailyStreak,
+		Quests = data.Quests.List,
 	}
 end
 

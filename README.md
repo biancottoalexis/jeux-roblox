@@ -34,7 +34,12 @@ annule les autres, ordres de chevaliers), mais avec **nos propres noms**.
 | **Sauvegarde** | Données sauvegardées automatiquement (DataStore) |
 | **Monétisation** | Game Passes (VIP x2 or, XP x2) et Developer Products (tirages, or) |
 | **Mannequins** | 3 mannequins pour s'entraîner seul |
-| **Interface** | Infos joueur, barres de vie et de mana, sorts avec temps de recharge, boutique |
+| **Récompense du jour** | Un cadeau à chaque connexion (7 jours, de plus en plus gros). Un jour manqué = retour au jour 1 |
+| **Quêtes du jour** | 3 quêtes tirées au hasard chaque jour à minuit (UTC) : mannequins, kills, sorts, dégâts, boss |
+| **Ordres de chevaliers** | 6 ordres à rejoindre dès le niveau 3, chacun avec sa couleur, son équipe et son bonus. Changer d'ordre coûte 2 000 or |
+| **Classement mondial** | Top 10 par niveau, par kills, et classement des ordres selon leur mérite |
+| **Boss** | Le Démon des Abysses apparaît toutes les 30 minutes. Tous ceux qui l'ont assez frappé gagnent de l'or et de l'XP, le meilleur gagne un tirage |
+| **Interface** | Infos joueur, barres de vie et de mana, sorts avec temps de recharge, boutique, quêtes, ordres, classement, barre du boss |
 | **Contrôles** | PC, manette et mobile (boutons tactiles automatiques) |
 
 ## Structure du projet
@@ -43,8 +48,10 @@ annule les autres, ordres de chevaliers), mais avec **nos propres noms**.
 default.project.json       ← configuration Rojo (relie le code à Studio)
 src/
   shared/                  → ReplicatedStorage.Shared (lu par serveur ET client)
-    Config.luau            ← ⚙️ équilibrage : dégâts, vitesses, récompenses
+    Config.luau            ← ⚙️ équilibrage : dégâts, vitesses, récompenses, boss
     Grimoires.luau         ← 📖 les grimoires et leurs sorts
+    Orders.luau            ← ⚔ les ordres de chevaliers et leurs bonus
+    Quests.luau            ← 📜 quêtes du jour et récompenses quotidiennes
     Monetization.luau      ← 💰 IDs des Game Passes / Products
     Remotes.luau, Movement.luau
   server/                  → ServerScriptService (code secret, anti-triche)
@@ -53,14 +60,20 @@ src/
       DataService          ← sauvegarde
       ProgressionService   ← niveaux, récompenses, tirages
       MonetizationService  ← achats Robux
+      QuestService         ← quêtes et récompense du jour
+      OrderService         ← ordres de chevaliers et mérite
+      LeaderboardService   ← classement mondial
+      BossService          ← le démon et son IA
       DummyService         ← mannequins
       Effects              ← effets visuels
   client/                  → StarterPlayerScripts (ce que voit le joueur)
     HUD, Input, Animations, State
+    UI                     ← outils pour créer l'interface
+    QuestMenu, OrderMenu, LeaderboardMenu, BossBar
 ```
 
-Les fichiers que tu modifieras le plus souvent sont **Config**, **Grimoires** et
-**Monetization**. Ce sont surtout des chiffres et des noms, sans logique compliquée.
+Les fichiers que tu modifieras le plus souvent sont **Config**, **Grimoires**,
+**Orders**, **Quests** et **Monetization**. Ce sont surtout des chiffres et des noms, sans logique compliquée.
 
 ---
 
@@ -107,6 +120,13 @@ Clique sur **▶ Play** dans Studio. Tu dois voir l'interface et 3 mannequins.
 | Z / X / C / V | Sorts (coûtent du mana) |
 
 Pour tester à plusieurs : onglet **Test** → **Clients and Servers** → 2 joueurs → **Start**.
+
+**Le boss** : en Studio, il apparaît 20 secondes après le début du test (au lieu
+de 3 minutes sur un vrai serveur), à gauche de la zone d'apparition. Quand un
+cercle rouge apparaît sous lui, éloigne-toi ou mets ta garde (F) !
+
+**Les classements** ont besoin de l'accès aux API (étape 5). Sans lui, ils
+montrent seulement les joueurs du serveur.
 
 ### 5. Activer la sauvegarde
 
@@ -164,6 +184,14 @@ Ouvre `src/shared/Grimoires.luau`, copie un grimoire existant, puis change son
 nom, sa couleur, sa rareté, ses sorts et leur coût en mana. Ajoute ensuite son
 identifiant dans `Grimoires.Order`. C'est tout. Les types de sorts disponibles
 sont décrits en haut du fichier.
+
+## ➕ Ajouter une quête ou un ordre
+
+- **Quête** : dans `src/shared/Quests.luau`, ajoute une ligne dans `Quests.Pool`
+  avec son texte, son type (`Kind`), son objectif (`Goal`) et sa récompense.
+- **Récompense du jour** : modifie la liste `Quests.DailyRewards`.
+- **Ordre** : dans `src/shared/Orders.luau`, copie un ordre, change son nom, sa
+  couleur et son bonus, puis ajoute son identifiant dans `Orders.Order`.
 
 ## 🎬 Ajouter des animations
 

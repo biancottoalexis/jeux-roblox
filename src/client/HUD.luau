@@ -1,5 +1,6 @@
 -- Interface du joueur, entièrement créée en code :
--- infos (grimoire, niveau, or), vie, mana, sorts, tirage de grimoire et boutique.
+-- infos (grimoire, niveau, or), vie, mana, sorts, tirage de grimoire, boutique
+-- et boutons des menus (quêtes, ordres, classement).
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -15,107 +16,20 @@ local Monetization = require(Shared.Monetization)
 local Remotes = require(Shared.Remotes)
 
 local State = require(script.Parent.State)
+local UI = require(script.Parent.UI)
+local QuestMenu = require(script.Parent.QuestMenu)
+local OrderMenu = require(script.Parent.OrderMenu)
+local LeaderboardMenu = require(script.Parent.LeaderboardMenu)
+local BossBar = require(script.Parent.BossBar)
 
 local HUD = {}
 
 local player = Players.LocalPlayer
 
-local COLORS = {
-	Panel = Color3.fromRGB(20, 20, 28),
-	PanelLight = Color3.fromRGB(38, 38, 52),
-	Text = Color3.fromRGB(240, 240, 245),
-	Muted = Color3.fromRGB(160, 160, 175),
-	Health = Color3.fromRGB(230, 60, 70),
-	Mana = Color3.fromRGB(70, 120, 255),
-	XP = Color3.fromRGB(90, 170, 255),
-	Gold = Color3.fromRGB(255, 205, 60),
-	Accent = Color3.fromRGB(255, 90, 120),
-}
+local COLORS = UI.COLORS
+local make, corner, stroke, label, button, bar, formatNumber =
+	UI.make, UI.corner, UI.stroke, UI.label, UI.button, UI.bar, UI.formatNumber
 local SKILL_KEYS = { "Z", "X", "C", "V" }
-
-local function make(className: string, props: { [string]: any }, children: { Instance }?): any
-	local instance = Instance.new(className)
-	for key, value in props do
-		if key ~= "Parent" then
-			(instance :: any)[key] = value
-		end
-	end
-	for _, child in children or {} do
-		child.Parent = instance
-	end
-	if props.Parent then
-		instance.Parent = props.Parent
-	end
-	return instance
-end
-
-local function corner(radius: number?)
-	return make("UICorner", { CornerRadius = UDim.new(0, radius or 8) })
-end
-
-local function stroke(color: Color3?)
-	return make("UIStroke", { Color = color or Color3.fromRGB(70, 70, 90), Thickness = 1.5 })
-end
-
-local function label(props: { [string]: any })
-	local defaults = {
-		BackgroundTransparency = 1,
-		Font = Enum.Font.GothamBold,
-		TextColor3 = COLORS.Text,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextScaled = true,
-	}
-	for key, value in props do
-		defaults[key] = value
-	end
-	return make("TextLabel", defaults)
-end
-
-local function button(props: { [string]: any }, color: Color3)
-	local defaults = {
-		BackgroundColor3 = color,
-		Font = Enum.Font.GothamBlack,
-		TextColor3 = COLORS.Text,
-		TextScaled = true,
-		AutoButtonColor = true,
-	}
-	for key, value in props do
-		defaults[key] = value
-	end
-	return make("TextButton", defaults, { corner(), make("UIPadding", {
-		PaddingTop = UDim.new(0, 6),
-		PaddingBottom = UDim.new(0, 6),
-		PaddingLeft = UDim.new(0, 8),
-		PaddingRight = UDim.new(0, 8),
-	}) })
-end
-
-local function bar(parent: Instance, position: UDim2, size: UDim2, color: Color3)
-	local back = make("Frame", {
-		Position = position,
-		Size = size,
-		BackgroundColor3 = COLORS.PanelLight,
-		Parent = parent,
-	}, { corner(6) })
-	local fill = make("Frame", {
-		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = color,
-		Parent = back,
-	}, { corner(6) })
-	local text = label({
-		Size = UDim2.fromScale(1, 1),
-		TextXAlignment = Enum.TextXAlignment.Center,
-		ZIndex = 2,
-		Parent = back,
-	})
-	return fill, text
-end
-
-local function formatNumber(n: number): string
-	local s = tostring(math.floor(n))
-	local formatted = s:reverse():gsub("(%d%d%d)", "%1 "):reverse()
-	return (formatted:gsub("^ ", ""))
-end
 
 ---------------------------------------------------------------------------
 
@@ -294,43 +208,8 @@ local function shopItem(parent: Instance, order: number, title: string, descript
 end
 
 local function buildShop()
-	shopFrame = make("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(440, 420),
-		BackgroundColor3 = COLORS.Panel,
-		Visible = false,
-		ZIndex = 10,
-		Parent = gui,
-	}, { corner(12), stroke(COLORS.Accent), make("UISizeConstraint", { MaxSize = Vector2.new(440, 420) }) })
-
-	label({
-		Position = UDim2.fromOffset(16, 12),
-		Size = UDim2.new(1, -80, 0, 32),
-		Text = "🛒 Boutique",
-		Parent = shopFrame,
-	})
-	local close = button({
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 12),
-		Size = UDim2.fromOffset(36, 36),
-		Text = "X",
-		Parent = shopFrame,
-	}, COLORS.Accent)
-	close.Activated:Connect(function()
-		shopFrame.Visible = false
-	end)
-
-	local list = make("ScrollingFrame", {
-		Position = UDim2.fromOffset(16, 56),
-		Size = UDim2.new(1, -32, 1, -72),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ScrollBarThickness = 6,
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		CanvasSize = UDim2.new(),
-		Parent = shopFrame,
-	}, { make("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
+	local list
+	shopFrame, list = UI.panel(gui, "🛒 Boutique")
 
 	local order = 0
 	for _, key in Monetization.GamePassOrder do
@@ -346,23 +225,43 @@ local function buildShop()
 end
 
 local function buildSideButtons()
+	-- 2 colonnes de boutons, à gauche sous le panneau d'infos
 	local holder = make("Frame", {
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 12, 0.5, 0),
-		Size = UDim2.fromOffset(150, 110),
+		Position = UDim2.fromOffset(12, 208),
+		Size = UDim2.fromOffset(236, 136),
 		BackgroundTransparency = 1,
 		Parent = gui,
-	}, { make("UIListLayout", { Padding = UDim.new(0, 10) }) })
+	}, { make("UIGridLayout", {
+		CellSize = UDim2.fromOffset(114, 40),
+		CellPadding = UDim2.fromOffset(8, 8),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}) })
 
-	local spin = button({ Size = UDim2.fromOffset(150, 48), Text = "📖 Grimoire", Parent = holder }, Color3.fromRGB(120, 70, 220))
-	spin.Activated:Connect(function()
+	local function sideButton(order: number, text: string, color: Color3, onClick: () -> ())
+		local b = button({ Text = text, LayoutOrder = order, Parent = holder }, color)
+		b.Activated:Connect(onClick)
+		return b
+	end
+
+	sideButton(1, "📖 Grimoire", Color3.fromRGB(120, 70, 220), function()
 		Remotes.Spin:FireServer()
 	end)
-
-	local shop = button({ Size = UDim2.fromOffset(150, 48), Text = "🛒 Boutique", Parent = holder }, COLORS.Accent)
-	shop.Activated:Connect(function()
-		shopFrame.Visible = not shopFrame.Visible
+	sideButton(2, "🛒 Boutique", COLORS.Accent, function()
+		UI.togglePanel(shopFrame)
 	end)
+	local questButton = sideButton(3, "📜 Quêtes", Color3.fromRGB(200, 130, 30), function()
+		UI.togglePanel(QuestMenu.Frame)
+	end)
+	sideButton(4, "⚔ Ordres", Color3.fromRGB(40, 110, 200), function()
+		UI.togglePanel(OrderMenu.Frame)
+	end)
+	sideButton(5, "🏆 Classement", Color3.fromRGB(40, 150, 110), function()
+		UI.togglePanel(LeaderboardMenu.Frame)
+	end)
+
+	QuestMenu.Build(gui, questButton)
+	OrderMenu.Build(gui)
+	LeaderboardMenu.Build(gui)
 end
 
 local function refreshData()
@@ -449,6 +348,7 @@ function HUD.Start()
 	buildHealthAndSkills()
 	buildShop()
 	buildSideButtons()
+	BossBar.Build(gui)
 
 	notifyLabel = label({
 		AnchorPoint = Vector2.new(0.5, 0),

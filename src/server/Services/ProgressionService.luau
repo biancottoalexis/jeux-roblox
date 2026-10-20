@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Grimoires = require(Shared.Grimoires)
+local Orders = require(Shared.Orders)
 local Remotes = require(Shared.Remotes)
 
 local DataService = require(script.Parent.DataService)
@@ -16,7 +17,13 @@ local SPIN_COOLDOWN = 0.5
 local lastSpin: { [Player]: number } = {}
 local rng = Random.new()
 
-function ProgressionService.AddRewards(player: Player, gold: number, xp: number)
+-- Donne de l'or, de l'XP et éventuellement des tirages (bonus VIP, XP x2 et
+-- bonus d'ordre compris)
+function ProgressionService.AddRewards(player: Player, gold: number, xp: number, spins: number?)
+	local current = DataService.Get(player)
+	local orderId = current and current.Order
+	gold = math.floor(gold * (1 + Orders.BonusFor(orderId, "Gold")))
+	xp = math.floor(xp * (1 + Orders.BonusFor(orderId, "XP")))
 	if MonetizationService.HasPass(player, "VIP") then
 		gold *= 2
 	end
@@ -28,6 +35,7 @@ function ProgressionService.AddRewards(player: Player, gold: number, xp: number)
 	DataService.Update(player, function(data)
 		data.Gold += gold
 		data.XP += xp
+		data.Spins += spins or 0
 		while data.Level < Config.Progression.MaxLevel and data.XP >= Config.XPForLevel(data.Level) do
 			data.XP -= Config.XPForLevel(data.Level)
 			data.Level += 1
